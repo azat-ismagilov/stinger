@@ -37,9 +37,7 @@ config="\
 [4][logo]overlay=x=W/2-w/2:y=H/2-h/2[logo];\
 [logo][alpha4]alphamerge=shortest=1[logo];\
 \
-[out][logo]overlay[out];\
-\
-[6][out]overlay=shortest=1[out]
+[out][logo]overlay[out]
 "
 
 echo $config
@@ -52,4 +50,4 @@ ffmpeg \
     -f lavfi -i "color=${color4}:s=1920x1080" \
     -i ${image} \
     -filter_complex ${config}\
-    -map [out] -codec:v qtrle output.mov
+    -map [out] -vcodec qtrle output.mov
