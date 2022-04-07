@@ -22,9 +22,9 @@ config="\
 echo $config
 
 ffmpeg \
-    -i layer1.mov \
-    -i layer2.mov \
-    -i layer3.mov \
+    -i src/layer1.mov \
+    -i src/layer2.mov \
+    -i src/layer3.mov \
     -f lavfi -i "color=${color1}:s=1920x1080" \
     -f lavfi -i "color=${color2}:s=1920x1080" \
     -f lavfi -i "color=${color3}:s=1920x1080" \
