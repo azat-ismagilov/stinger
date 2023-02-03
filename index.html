@@ -1,0 +1,112 @@
+<html>
+  <head>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.1/dist/ffmpeg.min.js"></script>
+    <style>
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Stinger generator with no backend!</h3>
+    <form id="uploader">
+      <label for="color-1">Color 1:</label>
+      <input type="color" id="color-1" value="#ff0000"><br>
+      <label for="color-2">Color 2:</label>
+      <input type="color" id="color-2" value="#ffff00"><br>
+      <label for="color-3">Color 3:</label>
+      <input type="color" id="color-3" value="#0000ff"><br>
+      <label for="color-4">Background color:</label>
+      <input type="color" id="color-4" value="#ffffff"><br>
+      <label for="uploader-image">Select logo:</label>
+      <input type="file" id="uploader-image"><br><br>
+      <input type="submit">
+    </form>
+    <button onClick="cancel()">Cancel</button>
+    <p id="message"></p>
+    <a id="output-video" download="stinger.mov"></a>
+    <script>
+      const { createFFmpeg, fetchFile } = FFmpeg;
+      let ffmpeg = null;
+      const transcode = async ({ target }) => {
+        const image = form.querySelector('#uploader-image').files[0];
+        const color1 = form.querySelector('#color-1').value;
+        const color2 = form.querySelector('#color-2').value;
+        const color3 = form.querySelector('#color-3').value;
+        const color4 = form.querySelector('#color-4').value;
+        if (ffmpeg === null) {
+          ffmpeg = createFFmpeg({ 
+            mainName: 'main',
+            corePath: 'https://unpkg.com/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js'
+          });
+        }
+        const message = document.getElementById('message');
+        message.innerHTML = 'Loading ffmpeg-core.js';
+        if (!ffmpeg.isLoaded()) {
+          await ffmpeg.load();
+        }
+        ffmpeg.FS('writeFile', 'across.avi', await fetchFile(new URL('src/across.avi', document.location).href));
+        ffmpeg.FS('writeFile', image.name, await fetchFile(image));
+        message.innerHTML = 'Start transcoding';
+        await ffmpeg.run('-i', 'across.avi', 
+          '-f', 'lavfi', '-i', `color=${color1}:s=1920x1080`,
+          '-f', 'lavfi', '-i', `color=${color2}:s=1920x1080`,
+          '-f', 'lavfi', '-i', `color=${color3}:s=1920x1080`,
+          '-f', 'lavfi', '-i', `color=${color4}:s=1920x1080`,
+          '-i', image.name,
+          '-filter_complex', 
+          '[0]trim=duration=1[alpha];\
+           [alpha]split=4[alpha1][alpha2][alpha3][alpha4];\
+           [alpha1]crop=1920:1080:0:0[alpha1];\
+           [alpha2]crop=1920:1080:300:0[alpha2];\
+           [alpha3]crop=1920:1080:600:0[alpha3];\
+           [alpha4]crop=1920:1080:900:0[alpha4];\
+           [1][alpha1]alphamerge[color1];\
+           [2][alpha2]alphamerge[color2];\
+           [3][alpha3]alphamerge[color3];\
+           \
+           [color1][color2]overlay[start];\
+           [start][color3]overlay[start];\
+           [start]split=2[start][finish];\
+           [finish]reverse,hflip,vflip[finish];\
+           [start][finish]concat[out];\
+           \
+           [alpha4]split=2[alpha4][alpha4_r];\
+           [alpha4_r]reverse,hflip,vflip[alpha4_r];\
+           [alpha4][alpha4_r]concat[alpha4];\
+           \
+           [5]scale=w=512:h=512:force_original_aspect_ratio=decrease[logo];\
+           [4][logo]overlay=x=W/2-w/2:y=H/2-h/2[logo];\
+           [logo][alpha4]alphamerge[logo];\
+           \
+           [out][logo]overlay[out]',
+          '-map', '[out]', '-vcodec', 'qtrle', 'output.mov');
+        message.innerHTML = 'Complete transcoding';
+        const data = ffmpeg.FS('readFile', 'output.mov');
+
+        const outputVideo = document.getElementById('output-video');
+        outputVideo.href = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mov' }));
+        outputVideo.innerHTML = "Download video";
+      }
+      const form = document.getElementById('uploader');
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        transcode(e);
+      });
+
+      const cancel = () => {
+        try {
+          ffmpeg.exit();
+        } catch(e) {}
+        ffmpeg = null;
+      }
+    </script>
+  </body>
+</html>
