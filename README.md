@@ -1,4 +1,4 @@
 # stinger
-Рекомендую использовать make_new_stinger.sh
+Simple web interface: https://azat-ismagilov.github.io/stinger/
 
-В make_stinger.sh или make_new_stinger.sh надо указать цвета и изображение.
+You also can use make_new_stinger.sh and make_stinger.sh.
